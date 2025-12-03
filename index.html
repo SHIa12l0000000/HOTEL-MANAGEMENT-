@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Hotel Paradise Valley</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #fafafa;
+        margin: 0;
+        padding: 0;
+        text-align: center;
+    }
+    h1 { margin-top: 20px; }
+    .screen { display: none; padding: 20px; }
+    .active { display: block; }
+    button {
+        padding: 10px 20px;
+        margin: 8px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    input, select, textarea {
+        width: 250px; padding: 8px; margin: 6px;
+    }
+    .menu-item { text-align: left; margin-left: 20%; }
+</style>
+
+</head>
+<body>
+
+<h1>HOTEL PARADISE VALLEY</h1>
+
+<!-- MAIN MENU -->
+<div id="home" class="screen active">
+    <button onclick="show('booking')">Booking</button><br>
+    <button onclick="show('rooms')">Rooms Info</button><br>
+    <button onclick="show('restaurant')">Restaurant</button><br>
+    <button onclick="show('payment')">Payment</button><br>
+    <button onclick="show('records')">Records</button><br>
+</div>
+
+<!-- BOOKING SCREEN -->
+<div id="booking" class="screen">
+    <h2>Room Booking</h2>
+
+    <input id="b_name" placeholder="Name"><br>
+    <input id="b_phone" placeholder="Phone"><br>
+    <input id="b_addr" placeholder="Address"><br>
+    <input id="b_ci" placeholder="Check-in dd/mm/yyyy"><br>
+    <input id="b_co" placeholder="Check-out dd/mm/yyyy"><br>
+
+    <select id="b_room">
+        <option value="">Select Room</option>
+        <option>Standard Non-AC</option>
+        <option>Standard AC</option>
+        <option>3-Bed Non-AC</option>
+        <option>3-Bed AC</option>
+    </select><br>
+
+    <button onclick="bookRoom()">Book Room</button><br>
+    <button onclick="show('home')">Back</button>
+</div>
+
+<!-- ROOMS INFO -->
+<div id="rooms" class="screen">
+    <h2>Room Information</h2>
+    <p>
+    STANDARD NON-AC: Bed, TV, Cupboard, Balcony<br><br>
+    STANDARD AC: Above + AC<br><br>
+    3-Bed NON-AC: Double + Single Bed, Balcony<br><br>
+    3-Bed AC: Above + AC
+    </p>
+    <button onclick="show('home')">Back</button>
+</div>
+
+<!-- RESTAURANT -->
+<div id="restaurant" class="screen">
+    <h2>Restaurant Billing</h2>
+    <input id="rest_cid" placeholder="Customer ID"><br>
+    <button onclick="openMenu()">Open Menu</button><br>
+    <button onclick="show('home')">Back</button>
+</div>
+
+<!-- PAYMENT -->
+<div id="payment" class="screen">
+    <h2>Payment</h2>
+    <input id="pay_phone" placeholder="Phone Number"><br>
+    <button onclick="processPayment()">Pay</button><br>
+    <button onclick="show('home')">Back</button>
+</div>
+
+<!-- RECORDS -->
+<div id="records" class="screen">
+    <h2>Customer Records</h2>
+    <textarea id="rec_box" rows="15" cols="60"></textarea><br>
+    <button onclick="show('home')">Back</button>
+</div>
+
+<!-- MENU POPUP -->
+<div id="menu_popup" class="screen">
+    <h2>Menu</h2>
+    <div id="menu_items"></div>
+    <button onclick="addFood()">Add to Bill</button><br>
+    <button onclick="closeMenu()">Close</button>
+</div>
+
+<script>
+// --------------------------------------------
+// DATA STORAGE (Mirror of your Python lists)
+// --------------------------------------------
+let nm = [], phno = [], add = [], checkin = [], checkout = [];
+let room = [], price = [], rc = [], p = [], rm = [], custid = [], day = [];
+let index_i = 0;
+
+// --------------------------------------------
+// NAVIGATION
+// --------------------------------------------
+function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+
+    if (id === "records") loadRecords();
+}
+
+// --------------------------------------------
+// DATE VALIDATION
+// --------------------------------------------
+function isValidDate(dd, mm, yyyy) {
+    let d = new Date(yyyy, mm - 1, dd);
+    return d.getFullYear() == yyyy && 
+           d.getMonth() == mm - 1 && 
+           d.getDate() == dd;
+}
+
+// --------------------------------------------
+// BOOKING
+// --------------------------------------------
+function bookRoom() {
+    let name = b_name.value.trim();
+    let phone = b_phone.value.trim();
+    let addr = b_addr.value.trim();
+    let ci = b_ci.value.trim();
+    let co = b_co.value.trim();
+    let rtype = b_room.value.trim();
+
+    if (!name || !phone || !addr || !ci || !co || !rtype) {
+        alert("All fields required.");
+        return;
+    }
+
+    let [d1, m1, y1] = ci.split("/").map(Number);
+    let [d2, m2, y2] = co.split("/").map(Number);
+
+    if (!isValidDate(d1,m1,y1) || !isValidDate(d2,m2,y2)) {
+        alert("Invalid date.");
+        return;
+    }
+
+    let start = new Date(y1, m1-1, d1);
+    let end   = new Date(y2, m2-1, d2);
+
+    if (end <= start) {
+        alert("Check-out must be after check-in.");
+        return;
+    }
+
+    let days = (end - start) / (1000*60*60*24);
+
+    nm.push(name);
+    phno.push(phone);
+    add.push(addr);
+    checkin.push(ci);
+    checkout.push(co);
+    day.push(days);
+
+    const priceMap = {
+        "Standard Non-AC": 3500,
+        "Standard AC": 4000,
+        "3-Bed Non-AC": 4500,
+        "3-Bed AC": 5000
+    };
+
+    room.push(rtype);
+    price.push(priceMap[rtype]);
+
+    let rn = Math.floor(Math.random() * 40) + 300;
+    let cid = Math.floor(Math.random() * 40) + 10;
+
+    rm.push(rn);
+    custid.push(cid);
+    rc.push(0);
+    p.push(0);
+
+    index_i++;
+
+    alert(`Room Booked!\nRoom No: ${rn}\nCustomer ID: ${cid}`);
+    show("home");
+}
+
+// --------------------------------------------
+// RESTAURANT
+// --------------------------------------------
+let activeCID = null;
+let menuData = {
+    "Tea":20, "Coffee":25, "Sandwich":50,
+    "Shahi Paneer":110, "Dal Makhani":150,
+    "Roti":15, "Rice":90, "Ice Cream":60
+};
+
+function openMenu() {
+    let cid = Number(rest_cid.value);
+    if (!custid.includes(cid)) { alert("Customer not found."); return; }
+
+    activeCID = cid;
+
+    let itemsDiv = document.getElementById("menu_items");
+    itemsDiv.innerHTML = "";
+
+    for (let item in menuData) {
+        itemsDiv.innerHTML += 
+          `<label class="menu-item">
+             <input type='checkbox' class='food' value='${item}'> 
+             ${item} - Rs ${menuData[item]}
+           </label><br>`;
+    }
+
+    show("menu_popup");
+}
+
+function addFood() {
+    let idx = custid.indexOf(activeCID);
+    let total = 0;
+
+    document.querySelectorAll(".food:checked").forEach(ch=>{
+        total += menuData[ch.value];
+    });
+
+    rc[idx] += total;
+    alert(`Added Rs ${total} to restaurant bill.`);
+    show("restaurant");
+}
+
+function closeMenu() { show("restaurant"); }
+
+// --------------------------------------------
+// PAYMENT
+// --------------------------------------------
+function processPayment() {
+    let ph = pay_phone.value.trim();
+    let idx = phno.indexOf(ph);
+
+    if (idx === -1) {
+        alert("Record not found.");
+        return;
+    }
+
+    let total = price[idx] * day[idx] + rc[idx];
+
+    p[idx] = 1;
+    rm[idx] = 0;
+    custid[idx] = 0;
+
+    alert(`Payment Successful!\nTotal Paid: Rs ${total}`);
+    show("home");
+}
+
+// --------------------------------------------
+// RECORDS
+// --------------------------------------------
+function loadRecords() {
+    let box = document.getElementById("rec_box");
+    box.value = "";
+
+    if (nm.length === 0) {
+        box.value = "No Records";
+        return;
+    }
+
+    for (let i = 0; i < nm.length; i++) {
+        box.value += 
+          `${nm[i]} | ${phno[i]} | ${add[i]} | ${checkin[i]} → ${checkout[i]} | ${room[i]}\n`;
+    }
+}
+
+</script>
+
+</body>
+</html>
